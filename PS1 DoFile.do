@@ -18,6 +18,8 @@
 
 //import excel "https://sites.google.com/a/scarletmail.rutgers.edu/yosmeriz-datman/admitted-students/2016%20Admits.xlsx?attredirects=0&d=1"
 
+
+//no just dump that, that is not stata code
 //the below is from GitHub, but I dont think it'll work since the file is not loading
 echo "# DataManagementClass" >> README.md
 git init
@@ -85,6 +87,10 @@ set logtype text
 
 
 //This is the file: https://sites.google.com/a/scarletmail.rutgers.edu/yosmeriz-datman/admitted-students/R11501441.xlsx?attredirects=0&d=1
+//ok then just say:
+import excel "https://sites.google.com/a/scarletmail.rutgers.edu/yosmeriz-datman/admitted-students/R11501441.xlsx?attredirects=0&d=1",sheet("Sheet1") firstrow clear
+
+
 
 import excel "/Volumes/NO NAME/Data Management Course/R11501441.xlsx", sheet("Sheet1") firstrow clear
 describe
