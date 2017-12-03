@@ -30,9 +30,18 @@
 //On the left hand panel, select attachments then upload on the top panel and upload the file. 
 //Once uploaded, right click on 'download' and then 'copy link' 
 
-import excel "https://sites.google.com/a/scarletmail.rutgers.edu/yosmeriz-datman/admitted-students/2017_All_Scholarship%20Recipients.xlsx?attredirects=0&d=1", clear //using the comma clear clears out anything that was there previously
-describe//This revealed that I have 4,984 observations. I know there should be 4,983 and now know I will need to remove the first row because that is the titles for each column
-browse//Allows me to see all the data I just imported. Some of the international students do not have city and country was not in the original data. For next problem set, I know I should drop this
+import excel "https://sites.google.com/a/scarletmail.rutgers.edu/yosmeriz-datman/admitted-students/2017_All_Scholarship%20Recipients.xlsx?attredirects=0&d=1", clear firstr
+//if you add firstrow it will import var names :)
+
+//do not use RUTGERS ID, these data are now on the internet and rutgers id 
+//may be privae info! make up your own id that noone can decipher and drop rutger id
+//eg:
+gen myID=_n
+
+//using the comma clear clears out anything that was there previously
+//need to have a space before // if in the ssame row as command
+describe  //This revealed that I have 4,984 observations. I know there should be 4,983 and now know I will need to remove the first row because that is the titles for each column
+browse //Allows me to see all the data I just imported. Some of the international students do not have city and country was not in the original data. For next problem set, I know I should drop this
 save "Scholarships1.dta", replace// This saves the file I just uploaded as a stata file 
 clear all
 //in ps 2 I will drop the first row using 'drop in 1'
