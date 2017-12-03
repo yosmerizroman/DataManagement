@@ -21,9 +21,15 @@
 DATA SET Updated to produce county codes
 ********************Manipulating Data and Merging*********************
 
+need to close the comment like this:!
+*/
+
 ***CLEAN VERSION DataSet1**
 clear
 import excel "https://sites.google.com/a/scarletmail.rutgers.edu/yosmeriz-datman/admitted-students/Fall%202017%20Scholarships.xlsx?attredirects=0&d=1", clear
+//again use firstr option --then it imports var names :)
+//import excel "https://sites.google.com/a/scarletmail.rutgers.edu/yosmeriz-datman/admitted-students/Fall%202017%20Scholarships.xlsx?attredirects=0&d=1", clear firstr
+
 drop B 
 rename A UniqueID 
 rename C Camdenschool 
@@ -39,18 +45,21 @@ rename M State
 rename N Zip 
 rename L CountyCode
 drop in 1
-ta Zip, mi
+ta Zip, mi //great ! you have geography! can map them! you should take my gis class
+//in spring! tom dahan is taking it!
 browse if length(Zip) !=5
 browse
 count if length(Zip) !=5
 replace Zip="INTL" if Zip==""
 replace State="INTL" if State==""
-gen OOS
+//gen OOS this is illegal command
 generate OOS= "OOS" if State !="NJ"
 replace OOS= "in-state" if State =="NJ"
-tab State
-generate Region=0
-generate Region=1
+tab State,mi
+
+
+generate Region=.
+//generate Region=1
 replace Region=0 if State=="NJ"
 replace Region=1 if State=="INTL"
 replace Region=1 if OOS=="OOS"
@@ -59,12 +68,15 @@ count if OOS =="in-state"
 destring AwardAmount, replace
 egen av_scholarship=mean(AwardAmount)
 move AwardAmount av_scholarship
+/* these are illegal commands!
 sd AwardAmount
 median AwardAmount
+*/
+
 egen avgaward=mean(AwardAmount)
 replace CommitDate="NotComing" if CommitDate==""
 ta CountyCode
-gen County
+//gen County you have a lot of commands that dont wokr
 generate County= "Atlantic" if CountyCode=="AT"
 move County CountyCode
 replace County= "Bergen" if CountyCode=="BE"
@@ -87,7 +99,7 @@ replace County= "Somerset" if CountyCode=="SO"
 replace County= "Sussex" if CountyCode=="SX"
 replace County= "Union" if CountyCode=="UN"
 replace County= "Warren" if CountyCode=="WA"
-save Problemset2data1scholarship
+save Problemset2data1scholarship, replace //always add replace
 
 **End Clean Version DataSet1**
 
@@ -101,6 +113,7 @@ save Problemset2data1scholarship
 clear
 import excel "https://docs.google.com/uc?id=1tCJxM4DkV3nwYB-EuEvGi1vINK0ISbrK&export=download"
 browse 
+//again use firstr option
 
 rename A County 
 rename B deaths 
@@ -198,9 +211,9 @@ drop BV BW CE CH zmedicareenrolled CJ CL zgradrate zsomecollege CZ zchildpov
 drop zsevereproblems
 drop zinjurydeath EA EB DX DY zassociations zhousehold zincome DD
 drop zyearslost
-egen avgdeaths=mean(deaths)
+egen avgdeaths=mean(deaths) //this gives error! dofiule must run without errors!
 
-save Problemset2data22health
+save Problemset2data22health, replace
 
 //County Added to original data set for purposes of this study.
 
@@ -211,3 +224,4 @@ use Problemset2data1scholarship
 merge m:1 County using Problemset2data22health
 save problemset2final
 
+//and should do descriptive stats here!lots of graphs :)
