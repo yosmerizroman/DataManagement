@@ -13,15 +13,23 @@ import excel "/Users/yosmerizroman/Downloads/Dissertation Dataset 8.19.19.xlsx",
 
 
 //DATA CLEANUP AND RECODES
-recode EOF_CODES (C=1 "EOF") ($ G N P R T U V W =0 "Non-EOF"), gen(EOF_IND)
+gen EOF_IND=.
+replace EOF_IND=1 if EOF_CODES=="C"
+replace EOF_IND=0 if inlist(EOF_CODES, "$" ,"G", "N",".", "P")
+replace EOF_IND=0 if inlist(EOF_CODES, "R", "T", "U", "V", "W")
+/*label EOF_IND==1 as "IN EOF" EOF_IND==0 as "No_EOF" */
 tab EOF_IND, mi
 tab EOF_IND GENDER, mi
 tab EOF_IND REGION_CD, mi
 tab EOF_IND HIGH_DITRESS_MNCPLTY, mi
-replace DFG_SCHOOL="N" if DFG_SCHOOL==""
-recode DFG_SCHOOL (D=1 "DFG") (N=0 "No DFG"), gen DFG_SCHOOL_B
-tab DFG_SCHOOL_B, mi
-tab EOF_IND DFG_SCHOOL_B, mi
+replace DFG_SCHOOL="0" if DFG_SCHOOL==""
+replace DFG_SCHOOL="1" if DFG_SCHOOL=="D"
+/*Need to appropriately label below */
+label 1 "DFG_SCH" 0 "NO_DFG"
+tab DFG_SCHOOL, mi
+tab EOF_IND DFG_SCHOOL, mi
+destring FATHER_EDU, replace
+destring MOTHER_EDU, replace
 recode FATHER_EDU (0 1 2=0 "Not_Attended") (3 4=1 "Attended"), gen(FATHER_COLLEGE)
 recode MOTHER_EDU (0 1 2=0 "Not_Attended") (3 4=1 "Attended"), gen(MOTHER_COLLEGE)
 destring YR, replace
@@ -30,25 +38,19 @@ tab FATHER_COLLEGE, mi
 tab MOTHER_COLLEGE, mi
 tab EOF_IND FATHER_COLLEGE, mi
 tab EOF_IND MOTHER_COLLEGE, mi
-replace NAT_SCH_LUNCH="N" if NAT_SCH_LUNCH==""
-recode NAT_SCH_LUNCH (N=0 "NO NSL") (Y=1 "NSL"), replace
-tab EOF_IND NAT_SCH_LUNCH 
-recode EOF_SIBLING (Y C=1 "SIBLING IN EOF") (N=0 "SIBLING NOT IN EOF"), gen EOF_SIBLING_B
-tab EOF_IND EOF_SIBLING_B, mi
-recode COLL_PREP_PROG (Y=1 "CollegePrep") (N=0 "NoCollegePrep"), gen COLL_PREP
+replace NAT_SCH_LUNCH="0" if inlist (NAT_SCH_LUNCH, "", "N")
+replace NAT_SCH_LUNCH="1" if NAT_SCH_LUNCH=="Y"
+tab EOF_IND NAT_SCH_LUNCH
+replace EOF_SIBLING="Y" if EOF_SIBLING=="C"
+replace EOF_SIBLING="1" if EOF_SIBLING=="Y"
+replace EOF_SIBLING="0" if EOF_SIBLING=="N"
+tab EOF_IND EOF_SIBLING, mi
+replace COLLEGE_PREP_PROG="0" if COLLEGE_PREP_PROG inlist (COLLEGE_PREP_PROG, "" "N")
+replace COLLEGE_PREP_PROG="1" if COLLEGE_PREP_PROG inlist (COLLEGE_PREP_PROG, "C" "Y")
 tab EOF_IND COLL_PREP_PROG, mi
+/*Need to appropriately label below */
+label REGION_CD 1 "New Brunswick" 2 "Newark" 3 "Camden"
 tab REGION_CD EOF_IND
-
-
-//so for now fine, can trun this into dummies later
-//so the first thing to do would be to use recode instead of replace, do some labels, see initial classes;
-//so go here and see examples
-//https://www.stata.com/manuals13/drecode.pdf
-//and then do graphs, aslo see class materials, and focus on your key bvariables of interest like DV and main IV
-//loops later
-
-
-
 //CONTINUOUS VARIABLES
 misstable summarize
 su HOUSEHOLDAGI if HOUSEHOLDAGI !=.
