@@ -1,14 +1,44 @@
 *Final Dataset for Dissertation. Last Update 8.30.19
-
-//can put here brief description of your research; hypotheses, datasets etc, like a pragraph so i know basics
+/*The purpose of this study is to determine if college retention rates (from first year to second year and from second year to third year)
+differed among first generation Latino students in the Educational Opportunity Fund (EOF) program, 
+and first generation Latino students who are not in the EOF program. In order to be in the EOF program, students must apply and be admitted
+to the program based on academic and financial need. This study is done at Ruters, The State University of New Jersey's three campuses--
+Rutgers University-New Brunswick, Rutgers University-Newark, and Rutgers University-Camden. The research question is: How does the
+Educational Opportunity Fund program at Rutgers, The State University of New Jersey impact first generation latino student retention?*/
 
 //If not using my personal computer use below
 import excel "https://docs.google.com/uc?id=1xILLWJ5fy_8VxENiQK2yscbGBUFBlsY8&export=download", firstrow clear
-//
-
+//If using my personal computer use below
 import excel "/Users/yosmerizroman/Downloads/Dissertation Dataset 8.19.19.xlsx", sheet("Dissertation Dataset 8.19.19") firstrow clear
-//VARIABLE GENERATING--DATA CLEANUP
-gen EOF_LIT=EOF_CODES
+
+
+//DATA CLEANUP AND RECODES
+recode EOF_CODES (C=1 "EOF") ($ G N P R T U V W =0 "Non-EOF"), gen(EOF_IND)
+tab EOF_IND, mi
+tab EOF_IND GENDER, mi
+tab EOF_IND REGION_CD, mi
+tab EOF_IND HIGH_DITRESS_MNCPLTY, mi
+replace DFG_SCHOOL="N" if DFG_SCHOOL==""
+recode DFG_SCHOOL (D=1 "DFG") (N=0 "No DFG"), gen DFG_SCHOOL_B
+tab DFG_SCHOOL_B, mi
+tab EOF_IND DFG_SCHOOL_B, mi
+recode FATHER_EDU (0 1 2=0 "Not_Attended") (3 4=1 "Attended"), gen(FATHER_COLLEGE)
+recode MOTHER_EDU (0 1 2=0 "Not_Attended") (3 4=1 "Attended"), gen(MOTHER_COLLEGE)
+destring YR, replace
+//CATEGORICAL VARIABLES
+tab FATHER_COLLEGE, mi
+tab MOTHER_COLLEGE, mi
+tab EOF_IND FATHER_COLLEGE, mi
+tab EOF_IND MOTHER_COLLEGE, mi
+replace NAT_SCH_LUNCH="N" if NAT_SCH_LUNCH==""
+recode NAT_SCH_LUNCH (N=0 "NO NSL") (Y=1 "NSL"), replace
+tab EOF_IND NAT_SCH_LUNCH 
+recode EOF_SIBLING (Y C=1 "SIBLING IN EOF") (N=0 "SIBLING NOT IN EOF"), gen EOF_SIBLING_B
+tab EOF_IND EOF_SIBLING_B, mi
+recode COLL_PREP_PROG (Y=1 "CollegePrep") (N=0 "NoCollegePrep"), gen COLL_PREP
+tab EOF_IND COLL_PREP_PROG, mi
+tab REGION_CD EOF_IND
+
 
 //so for now fine, can trun this into dummies later
 //so the first thing to do would be to use recode instead of replace, do some labels, see initial classes;
@@ -17,76 +47,8 @@ gen EOF_LIT=EOF_CODES
 //and then do graphs, aslo see class materials, and focus on your key bvariables of interest like DV and main IV
 //loops later
 
-replace EOF_LIT= "Confirmed" if EOF_LIT== "C"
-replace EOF_LIT= "FA INELIGIBLE, EOF AD" if EOF_LIT== "$"
-replace EOF_LIT= "NotEOF Precollege required" if EOF_LIT== "G"
-replace EOF_LIT= "FA INELIGIBLE" if EOF_LIT== "N"
-replace EOF_LIT= "Potential" if EOF_LIT== "P"
-replace EOF_LIT= "Eligible FA required" if EOF_LIT== "R"
-replace EOF_LIT= "10 percent override" if EOF_LIT== "T"
-replace EOF_LIT= "FAQ No Decision" if EOF_LIT== "U"
-replace EOF_LIT= "Non Compliance" if EOF_LIT== "V"
-replace EOF_LIT= "ACADEMICALLY INELIGIBLE" if EOF_LIT== "W"
-gen EOF_IND=EOF_LIT
-replace EOF_IND="1" if EOF_IND=="Confirmed"
-replace EOF_IND="0" if EOF_LIT=="FA INELIGIBLE, EOF AD"
-replace EOF_IND="0" if EOF_LIT=="NotEOF Precollege required"
-replace EOF_IND="0" if EOF_LIT=="FA INELIGIBLE"
-replace EOF_IND="0" if EOF_LIT=="Potential"
-replace EOF_IND="0" if EOF_LIT=="Eligible FA required"
-replace EOF_IND="0" if EOF_LIT=="10 percent override"
-replace EOF_IND="0" if EOF_LIT=="FAQ No Decision"
-replace EOF_IND="0" if EOF_LIT=="Non Compliance"
-replace EOF_IND="0" if EOF_LIT=="ACADEMICALLY INELIGIBLE"
-replace EOF_IND="3" if EOF_LIT==""
-gen EOF_INDICATOR=EOF_IND
-replace EOF_IND="2" if EOF_IND=="3"
-replace EOF_INDICATOR="NON-EOF" if EOF_IND=="0"
-replace EOF_INDICATOR="NON-EOF" if EOF_IND=="2"
-replace EOF_INDICATOR="EOF" if EOF_IND=="1"
-tab EOF_INDICATOR
-tab EOF_INDICATOR GENDER
-tab EOF_INDICATOR REGION_CD
-tab EOF_INDICATOR HIGH_DITRESS_MNCPLTY
-replace DFG_SCHOOL="1" if DFG_SCHOOL=="D"
-replace DFG_SCHOOL="0" if DFG_SCHOOL==""
-tab DFG_SCHOOL
-tab EOF_INDICATOR DFG_SCHOOL
-gen FATHER_COLLEGE=FATHER_EDU
-replace FATHER_COLLEGE="0" if FATHER_COLLEGE=="0"
-replace FATHER_COLLEGE="0" if FATHER_COLLEGE=="1"
-replace FATHER_COLLEGE="0" if FATHER_COLLEGE=="2"
-replace FATHER_COLLEGE="1" if FATHER_COLLEGE=="3"
-replace FATHER_COLLEGE="1" if FATHER_COLLEGE=="4"
-gen MOTHER_COLLEGE=MOTHER_EDU
-replace MOTHER_COLLEGE="0" if MOTHER_COLLEGE=="0"
-replace MOTHER_COLLEGE="0" if MOTHER_COLLEGE=="1"
-replace MOTHER_COLLEGE="0" if MOTHER_COLLEGE=="2"
-replace MOTHER_COLLEGE="1" if MOTHER_COLLEGE=="3"
-replace MOTHER_COLLEGE="1" if MOTHER_COLLEGE=="4"
-gen FATHER_COLLEGE_LIT=FATHER_COLLEGE
-replace FATHER_COLLEGE_LIT="ATTENDED" if FATHER_COLLEGE_LIT=="1"
-replace FATHER_COLLEGE_LIT="NOT_ATTENDED" if FATHER_COLLEGE_LIT=="0"
-gen MOTHER_COLLEGE_LIT=MOTHER_COLLEGE
-replace MOTHER_COLLEGE_LIT="ATTENDED" if MOTHER_COLLEGE_LIT=="1"
-replace MOTHER_COLLEGE_LIT="NOT_ATTENDED" if MOTHER_COLLEGE_LIT=="0"
-//CATEGORICAL VARIABLES 
-tab FATHER_COLLEGE
-tab FATHER_COLLEGE_LIT
-tab FATHER_EDU
-tab MOTHER_COLLEGE
-tab MOTHER_COLLEGE_LIT
-tab MOTHER_EDU
-tab EOF_INDICATOR FATHER_COLLEGE
-tab EOF_INDICATOR MOTHER_COLLEGE
-replace NAT_SCH_LUNCH="N" if NAT_SCH_LUNCH==""
-tab EOF_INDICATOR EOF_SIBLING
-replace EOF_SIBLING="Y" if EOF_SIBLING=="C"
-tab EOF_INDICATOR EOF_SIBLING
-tab EOF_INDICATOR NAT_SCH_LUNCH 
-tab EOF_INDICATOR COLL_PREP_PROG
-tab UNIT EOF_INDICATOR
-replace WARD_OF_COURT="BLANK" if WARD_OF_COURT==""
+
+
 //CONTINUOUS VARIABLES
 misstable summarize
 su HOUSEHOLDAGI if HOUSEHOLDAGI !=.
