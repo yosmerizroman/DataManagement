@@ -1,5 +1,6 @@
 *Final Dataset for Dissertation. Last Update 8.30.19
 
+//can put here brief description of your research; hypotheses, datasets etc, like a pragraph so i know basics
 
 //If not using my personal computer use below
 import excel "https://docs.google.com/uc?id=1xILLWJ5fy_8VxENiQK2yscbGBUFBlsY8&export=download", firstrow clear
@@ -8,6 +9,14 @@ import excel "https://docs.google.com/uc?id=1xILLWJ5fy_8VxENiQK2yscbGBUFBlsY8&ex
 import excel "/Users/yosmerizroman/Downloads/Dissertation Dataset 8.19.19.xlsx", sheet("Dissertation Dataset 8.19.19") firstrow clear
 //VARIABLE GENERATING--DATA CLEANUP
 gen EOF_LIT=EOF_CODES
+
+//so for now fine, can trun this into dummies later
+//so the first thing to do would be to use recode instead of replace, do some labels, see initial classes;
+//so go here and see examples
+//https://www.stata.com/manuals13/drecode.pdf
+//and then do graphs, aslo see class materials, and focus on your key bvariables of interest like DV and main IV
+//loops later
+
 replace EOF_LIT= "Confirmed" if EOF_LIT== "C"
 replace EOF_LIT= "FA INELIGIBLE, EOF AD" if EOF_LIT== "$"
 replace EOF_LIT= "NotEOF Precollege required" if EOF_LIT== "G"
