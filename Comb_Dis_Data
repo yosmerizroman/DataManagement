@@ -1,0 +1,184 @@
+*Final Dataset for Dissertation. Last Update 8.30.19
+*STATA VERSION 14.2
+/*The purpose of this study is to determine if college retention rates (from first year to second year and from second year to third year)
+differed among first generation Latino students in the Educational Opportunity Fund (EOF) program, 
+and first generation Latino students who are not in the EOF program. In order to be in the EOF program, students must apply and be admitted
+to the program based on academic and financial need. This study is done at Ruters, The State University of New Jersey's three campuses--
+Rutgers University-New Brunswick, Rutgers University-Newark, and Rutgers University-Camden. The research question is: How does the
+Educational Opportunity Fund program at Rutgers, The State University of New Jersey impact first generation latino student retention? The Hypothesis is
+that Latino students in an EOF program retain at higher rates than those not in the program. I will be using regression discontinuity to identify whether the 
+those in the program retain at higher rates than those who are not. Also considering propensity score matching*/
+***********************************************
+import excel "https://docs.google.com/uc?id=1xILLWJ5fy_8VxENiQK2yscbGBUFBlsY8&export=download", firstrow clear
+***DATA CLEANUP AND PREP
+*destring *, replace /*This was causing breaks in some of the later analyses, removing*/
+//TO GENERATE EOF INDICATORS
+gen EOF_IND=.
+replace EOF_IND=1 if EOF_CODES=="C" /* Indicator for placement in EOF program*/
+replace EOF_IND=0 if inlist(EOF_CODES, "$" ,"G", "N", "P") /* Indicators for apply to EOF but not placed */
+replace EOF_IND=0 if inlist(EOF_CODES, "R", "T", "U", "V", "W") /* Indicators for apply to EOF but not placed */
+replace EOF_IND=0 if EOF_CODES=="" /* If blank, not EOF*/
+label define EOF_IND 0 "NON-EOF" 1 "EOF"
+//TO GENERATE CAMPUS BINARY INDICATORS
+gen NB=.
+replace NB=1 if REGION_CD=="1"
+replace NB=0 if inlist(REGION_CD,"2","3") 
+gen NW=.
+replace NW=1 if REGION_CD=="2"
+replace NW=0 if inlist(REGION_CD,"1","3") 
+gen CM=.
+replace CM=1 if REGION_CD=="3"
+replace CM=0 if inlist(REGION_CD,"2","1") 
+//TO GENERATE INDICATORS FOR PARENT COMBINATIONS
+gen FATHER_COLLEGE=. /*Father attended college irrespective of mother*/
+replace FATHER_COLLEGE=1 if inlist(FATHER_EDU, "3", "4")
+replace FATHER_COLLEGE=0 if inlist(FATHER_EDU, "0", "1", "2")
+gen MOTHER_COLLEGE=. /*Mother attended college irrespective of mother*/
+replace MOTHER_COLLEGE=1 if inlist(MOTHER_EDU, "3", "4")
+replace MOTHER_COLLEGE=0 if inlist(MOTHER_EDU, "0", "1", "2")
+/*
+//ALTERNATIVE WAY TO GENERATE INDICATORS FOR PARENT COMBINATIONS w/labels
+destring FATHER_EDU, replace
+recode FATHER_EDU (0 1 2=0 "Not_Attended") (3 4=1 "Attended"), gen(FATHER_COLLEGE) /*FATHER ATTENDED*/
+destring MOTHER_EDU, replace
+recode MOTHER_EDU (0 1 2=0 "Not_Attended") (3 4=1 "Attended"), gen(MOTHER_COLLEGE)/*MOTHER ATTENDED*/
+*/
+gen FM_COLLEGE=./*BOTH PARENTS ATTENDED*/
+replace FM_COLLEGE=1 if FATHER_COLLEGE==1 & MOTHER_COLLEGE==1
+replace FM_COLLEGE=0 if FATHER_COLLEGE==0 & MOTHER_COLLEGE==0
+replace FM_COLLEGE=0 if FATHER_COLLEGE==1 & MOTHER_COLLEGE==0
+replace FM_COLLEGE=0 if FATHER_COLLEGE==0 & MOTHER_COLLEGE==1
+gen NEITHER_COLLEGE=./*NEITHER PARENTS ATTENDED*/
+replace NEITHER_COLLEGE=1 if FATHER_COLLEGE==0 & MOTHER_COLLEGE==0
+replace NEITHER_COLLEGE=0 if FATHER_COLLEGE==1 & MOTHER_COLLEGE==1
+replace NEITHER_COLLEGE=0 if FATHER_COLLEGE==1 & MOTHER_COLLEGE==0
+replace NEITHER_COLLEGE=0 if FATHER_COLLEGE==0 & MOTHER_COLLEGE==1
+gen FATHER_Y_NO_MOM=. /*FATHER ATTENDED NOT MOTHER*/
+replace FATHER_Y_NO_MOM=1 if FATHER_COLLEGE==1 & MOTHER_COLLEGE==0
+replace FATHER_Y_NO_MOM=0 if FATHER_COLLEGE==1 & MOTHER_COLLEGE==1
+replace FATHER_Y_NO_MOM=0 if FATHER_COLLEGE==0 & MOTHER_COLLEGE==0
+replace FATHER_Y_NO_MOM=0 if FATHER_COLLEGE==0 & MOTHER_COLLEGE==1
+gen MOTHER_Y_NO_FAT=./*MOTHER ATTENDED NOT FATHER*/
+replace MOTHER_Y_NO_FAT=1 if FATHER_COLLEGE==0 & MOTHER_COLLEGE==1
+replace MOTHER_Y_NO_FAT=0 if FATHER_COLLEGE==1 & MOTHER_COLLEGE==1
+replace MOTHER_Y_NO_FAT=0 if FATHER_COLLEGE==0 & MOTHER_COLLEGE==0
+replace MOTHER_Y_NO_FAT=0 if FATHER_COLLEGE==1 & MOTHER_COLLEGE==0
+//TO GENERATE INDICATORS FOR REMEDIAL COURSEWORK
+gen REMEDIAL_MATH=./*Student took remedial math */
+replace REMEDIAL_MATH=1 if inlist(GRADE640041,"PA", "S", "U", "W", "Z")
+replace REMEDIAL_MATH=1 if inlist(GRADE640042,"S", "U", "W", "Z")  
+replace REMEDIAL_MATH=0 if missing(REMEDIAL_MATH)
+gen REMEDIAL_ENG=./*Student took remedial English; Need to Check if GRADE640043 is remedial or equivalent to 640ECM*/
+replace REMEDIAL_ENG=1 if inlist(GRADE350100,"A", "B", "B+", "C", "C+", "D", "F", "W", "Z")
+replace REMEDIAL_ENG=0 if missing(REMEDIAL_ENG)
+//TO GENERATE INDICATORS PREDICTIVE OF STUDENT RETENTION
+gen DFG_SCHOOL_CD=.
+replace DFG_SCHOOL_CD=1 if DFG_SCHOOL=="D"
+replace DFG_SCHOOL_CD=0 if missing(DFG_SCHOOL)
+gen SCH_LUNCH=.
+replace SCH_LUNCH=1 if NAT_SCH_LUNCH=="Y"
+replace SCH_LUNCH=0 if inlist(NAT_SCH_LUNCH, "", "N")
+gen EOF_SIB=.
+replace EOF_SIB=1 if inlist(EOF_SIBLING, "C", "Y")
+replace EOF_SIB=0 if inlist(EOF_SIBLING, "N", "")
+gen COLL_PREP_CD=.
+replace COLL_PREP_CD=1 if inlist(COLL_PREP_PROG, "Y")
+replace COLL_PREP_CD=0 if inlist(COLL_PREP_PROG, "", "N")
+gen HDM=.
+replace HDM= 1 if inlist(HIGH_DITRESS_MNCPLTY, "HIGH DISTRESS MUNICIPALITY", "POCKET OF POVERTY") 
+replace HDM=0 if inlist(HIGH_DITRESS_MNCPLTY, "DOES NOT RESIDE IN HDM") 
+// TO CREATE LOCALS BASED ON CATEGORIES OF MEASURES PREDICTING RETENTION
+local SCHOOLING HS_GPA HS_PCTILE_RANK ACT_COMP SATSCORE COLLEGE_PREP_PROG  /*Variables associated with student high school preparedness for college*/
+local NEIGHBORHOOD DFG_SCHOOL HIGH_DITRESS_MNCPLTY /*Variables associated with neighborhood effects */
+local INCOME HOUSEHOLDAGI EFC NAT_SCH_LUNCH /*Variables associated with Income */
+local COLLEGE T1_GPA_TERM SP1_GPA_TERM SP1_GPA_CUM T2_GPA_TERM T2_GPA_CUM UNIT /*Variables Specific to grades while in college and Campus/School; for further research would be great to add other factors*/
+local DEM GENDER AGE_AT_START /*Demographic Variables*/
+local CATEGORICAL DFG_SCHOOL_CD GENDER NB NW CM HDM SCH_LUNCH COLL_PREP_CD EOF_SIB/*Categorical Variables*/
+local PAREDU FATHER_COLLEGE MOTHER_COLLEGE FM_COLLEGE NEITHER_COLLEGE FATHER_Y_NO_MOM MOTHER_Y_NO_FAT /*Categorical Parent Education variables. First generation defined as neither parent completed a BA*/
+local CONTINUOUS HOUSEHOLDAGI EFC SATSCORE HS_GPA HS_PCTILE_RANK ACT_COMP AGE_AT_START T1_GPA_TERM SP1_GPA_TERM SP1_GPA_CUM T2_GPA_TERM T2_GPA_CUM /*Continuous Variables*/
+local DEPENDENT SEC_FALL_RET THRD_FALL_RET /*Dependent Variables*/
+//LOOPS FOR SUMMARIZE CONTINUOUS VARIABLES ALL, EOF, and NON-EOF
+misstable summarize
+foreach i in `CONTINUOUS'{
+su `i'
+su `i' if EOF_IND==1
+su `i' if EOF_IND==0
+}
+//TABULATIONS FOR CATEGORICAL VARIABLES, ALL, EOF, and NON-EOF
+foreach i in `CATEGORICAL'{
+tab `i', mi
+tab EOF_IND `i', mi
+}
+foreach i in `PAREDU'{
+tab `i', mi
+tab EOF_IND `i', mi
+}
+//DEPENDENT VARIABLES-RETENTION
+foreach i in `DEPENDENT'{
+tab `i' if EOF_IND==1
+tab `i' if EOF_IND==0
+}
+//CROSSSTABULATIONS FY TO SO
+foreach i in `CATEGORICAL'{
+tab `i' SEC_FALL_RET, col row
+tab `i' SEC_FALL_RET if EOF_IND==1, col row
+tab `i' SEC_FALL_RET if EOF_IND==0, col row
+}
+foreach i in `PAREDU'{
+tab `i' SEC_FALL_RET, col row
+tab `i' SEC_FALL_RET if EOF_IND==1, col row
+tab `i' SEC_FALL_RET if EOF_IND==0, col row
+}
+//CROSSSTABULATIONS SO TO JR
+foreach i in `CATEGORICAL'{
+tab `i' THIRD_FALL_RET, col row
+tab `i' THIRD_FALL_RET if EOF_IND==1, col row
+tab `i' THIRD_FALL_RET if EOF_IND==0, col row
+}
+foreach i in `PAREDU'{
+tab `i' THIRD_FALL_RET, col row
+tab `i' THIRD_FALL_RET if EOF_IND==1, col row
+tab `i' THIRD_FALL_RET if EOF_IND==1, col row
+}
+***MERGING SURVEY DATA 
+/*If looking only at survey data*/
+//import excel "https://docs.google.com/uc?id=1PFStF-bUWV5C97lbTjssmj2lHJJV4vjl&export=download", firstrow clear
+merge 1:1 EMAIL using https://docs.google.com/uc?id=1PFStF-bUWV5C97lbTjssmj2lHJJV4vjl&export=download
+***GRAPHING
+//Bar Graphs
+//Student Retention for EOF and NonEOF group for each campus
+graph bar, over(EOF_IND) over(REGION_CD)
+graph bar, over(EOF_IND) over(REGION_CD) over(SEC_FALL_RET)
+graph bar, over(EOF_IND) over (SEC_FALL_RET)
+
+//Line Graphs
+//
+
+
+//Pie Charts
+graph pie, over(REGION_CD)
+graph pie, over(EOF_IND), title(Distribution EOF) subtitle(All Rutgers 2010-2017)
+
+//Histograms
+histogram SATSCORE, discrete by(EOF_IND)
+histogram SATSCORE, discrete by(REGION_CD)
+
+//Geographic Maps-- need to find NJ map on ESRI; .shp, .dbf, .shx
+ssc install spmap, replace
+ssc install shp2dta, replace
+shp2dta using local_NAMEFILE, database (NJDB) coordinates (NJCOORD) genid(id), replace
+spmap ZIP using NJCOORD
+
+***REGRESSIONS
+//For Basic regressions, Logistic Regression most appropriate since Retention(Dependent Variable) is binary
+destring SEC_FALL_RET
+logit SEC_FALL_RET HS_GPA SATSCORE /*Allows me to see the model displaying coefficients and standard errors*/
+destring THIRD_FALL_RET
+logit THIRD_FALL_RET HS_GPA SATSCORE
+
+//Used Stepwise Regression to see what the best fit to maximize the prediction power with minimum number of predictors.
+
+
+
+
+//Discontinuity
