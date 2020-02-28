@@ -1,0 +1,391 @@
+/*SUMMARY: The purpose of this study is to determine if sophomore and junior college retention rates
+differed among first generation Latino students in the Educational Opportunity Fund (EOF) program, 
+and first generation Latino students who are not in the EOF program at Ruters, The State University of New Jersey's three campuses--
+Rutgers University-New Brunswick, Rutgers University-Newark, and Rutgers University-Camden. 
+
+The research question is: How does the Educational Opportunity Fund program at Rutgers, The State University of New Jersey impact first generation latino student retention? The Hypothesis is
+that Latino students in an EOF program retain at higher rates than those not in the program. */
+
+
+*Final Dataset for dissertation. Last Update 8.30.19
+version 14.2
+capture log close
+clear all
+log using yosdissertation, text replace
+net from https://jslsoc.sitehost.iu.edu/stata
+net install spost13_ado, replace
+//IMPORT FILE
+import excel "https://docs.google.com/uc?id=1xILLWJ5fy_8VxENiQK2yscbGBUFBlsY8&export=download", firstrow clear
+***DATA CLEANUP AND DATA PREP
+//TO GENERATE EOF INDICATORS
+gen EOF_IND=.
+replace EOF_IND=1 if EOF_CODES=="C" /* Indicator for placement in EOF program*/
+replace EOF_IND=0 if inlist(EOF_CODES, "$" ,"G", "N", "P") /* Indicators for EOF application/interest, not placed*/
+replace EOF_IND=0 if inlist(EOF_CODES, "R", "T", "U", "V", "W") /*Indicators for EOF application/interent, not placed*/
+replace EOF_IND=0 if EOF_CODES=="" /* If blank, not EOF*/
+label define EOF_IND 0 "NON-EOF" 1 "EOF"
+//TO GENERATE CAMPUS BINARY INDICATORS
+gen NB=.
+replace NB=1 if REGION_CD=="1"
+replace NB=0 if inlist(REGION_CD,"2","3")
+label define NB 0 "Non-New Brunswick" 1 "New Brunswick" 
+gen NW=.
+replace NW=1 if REGION_CD=="2"
+replace NW=0 if inlist(REGION_CD,"1","3") 
+label define NW 0 "Non-Newark" 1 "Newark" 
+gen CM=.
+replace CM=1 if REGION_CD=="3"
+replace CM=0 if inlist(REGION_CD,"2","1")
+label define CM 0 "Non-Camden" 1 "Camden"  
+//TO GENERATE INDICATORS FOR PARENT COMBINATIONS
+gen FATHER_COLLEGE=. /*Father attended college irrespective of mother*/
+replace FATHER_COLLEGE=1 if inlist(FATHER_EDU, "3", "4")
+replace FATHER_COLLEGE=0 if inlist(FATHER_EDU, "0", "1", "2")
+label define FATHER_COLLEGE 0 "Not_Attended" 1 "Attended" 
+gen MOTHER_COLLEGE=. /*Mother attended college irrespective of father*/
+replace MOTHER_COLLEGE=1 if inlist(MOTHER_EDU, "3", "4")
+replace MOTHER_COLLEGE=0 if inlist(MOTHER_EDU, "0", "1", "2")
+label define MOTHER_COLLEGE 0 "Not_Attended" 1 "Attended" 
+gen FM_COLLEGE=. /* Both parents attended*/
+replace FM_COLLEGE=1 if FATHER_COLLEGE==1 & MOTHER_COLLEGE==1
+replace FM_COLLEGE=0 if FATHER_COLLEGE==0 & MOTHER_COLLEGE==0
+replace FM_COLLEGE=0 if FATHER_COLLEGE==1 & MOTHER_COLLEGE==0
+replace FM_COLLEGE=0 if FATHER_COLLEGE==0 & MOTHER_COLLEGE==1
+gen NEITHER_COLLEGE=. /*Neither parents attended*/
+replace NEITHER_COLLEGE=1 if FATHER_COLLEGE==0 & MOTHER_COLLEGE==0
+replace NEITHER_COLLEGE=0 if FATHER_COLLEGE==1 & MOTHER_COLLEGE==1
+replace NEITHER_COLLEGE=0 if FATHER_COLLEGE==1 & MOTHER_COLLEGE==0
+replace NEITHER_COLLEGE=0 if FATHER_COLLEGE==0 & MOTHER_COLLEGE==1
+gen FATHER_Y_NO_MOM=. /*Father attended, not mother*/
+replace FATHER_Y_NO_MOM=1 if FATHER_COLLEGE==1 & MOTHER_COLLEGE==0
+replace FATHER_Y_NO_MOM=0 if FATHER_COLLEGE==1 & MOTHER_COLLEGE==1
+replace FATHER_Y_NO_MOM=0 if FATHER_COLLEGE==0 & MOTHER_COLLEGE==0
+replace FATHER_Y_NO_MOM=0 if FATHER_COLLEGE==0 & MOTHER_COLLEGE==1
+gen MOTHER_Y_NO_FAT=. /*Mother attended, not father*/
+replace MOTHER_Y_NO_FAT=1 if FATHER_COLLEGE==0 & MOTHER_COLLEGE==1
+replace MOTHER_Y_NO_FAT=0 if FATHER_COLLEGE==1 & MOTHER_COLLEGE==1
+replace MOTHER_Y_NO_FAT=0 if FATHER_COLLEGE==0 & MOTHER_COLLEGE==0
+replace MOTHER_Y_NO_FAT=0 if FATHER_COLLEGE==1 & MOTHER_COLLEGE==0
+//TO GENERATE INDICATORS FOR REMEDIAL COURSEWORK. ONLY CAMDEN
+gen REMEDIAL_MATH=. /* Student took remedial math */
+replace REMEDIAL_MATH=1 if inlist(GRADE640041,"PA", "S", "U", "W", "Z")
+replace REMEDIAL_MATH=1 if inlist(GRADE640042,"S", "U", "W", "Z")  
+replace REMEDIAL_MATH=0 if missing(REMEDIAL_MATH)
+gen REMEDIAL_ENG=. /*Student took remedial English*/
+replace REMEDIAL_ENG=1 if inlist(GRADE350100,"A", "B", "B+", "C", "C+", "D", "F", "W", "Z")
+replace REMEDIAL_ENG=0 if missing(REMEDIAL_ENG)
+//TO GENERATE INDICATORS PREDICTIVE OF STUDENT RETENTION
+gen DFG_SCHOOL_CD=.
+replace DFG_SCHOOL_CD=1 if DFG_SCHOOL=="D"
+replace DFG_SCHOOL_CD=0 if missing(DFG_SCHOOL)
+label define DFG_SCHOOL_CD 0 "DFG_SCHOOL" 1 "No_DFG_SCHOOL"
+gen SCH_LUNCH=.
+replace SCH_LUNCH=1 if NAT_SCH_LUNCH=="Y"
+replace SCH_LUNCH=0 if inlist(NAT_SCH_LUNCH, "", "N")
+gen EOF_SIB=.
+replace EOF_SIB=1 if inlist(EOF_SIBLING, "C", "Y")
+replace EOF_SIB=0 if inlist(EOF_SIBLING, "N", "")
+gen COLL_PREP_CD=.
+replace COLL_PREP_CD=1 if inlist(COLL_PREP_PROG, "Y")
+replace COLL_PREP_CD=0 if inlist(COLL_PREP_PROG, "", "N")
+gen HDM=.
+replace HDM= 1 if inlist(HIGH_DITRESS_MNCPLTY, "HIGH DISTRESS MUNICIPALITY", "POCKET OF POVERTY") 
+replace HDM=0 if inlist(HIGH_DITRESS_MNCPLTY, "DOES NOT RESIDE IN HDM") 
+gen FEMALE_1=.
+replace FEMALE_1=1 if GENDER=="F"
+replace FEMALE_1=0 if GENDER=="M"
+label define FEMALE_1 0 "MALE" 1 "FEMALE"
+//TO DESTRING DEPENDEDNT VARIABLES
+destring SEC_FALL_RET, replace
+destring THRD_FALL_RET, replace
+//MERGING SURVEY DATA
+drop in 4012 /*Duplicate email address*/
+preserve
+tempfile surveydata
+import excel "https://docs.google.com/uc?id=1PFStF-bUWV5C97lbTjssmj2lHJJV4vjl&export=download", firstrow clear
+save `surveydata'
+restore
+merge 1:1 EMAIL using `surveydata'
+//TO CREATE LOCALS BASED ON MEASURES PREDICTING STUDNET RETENTION
+local SCHOOLING HS_GPA HS_PCTILE_RANK ACT_COMP SATSCORE COLLEGE_PREP_PROG  
+local NEIGHBORHOOD DFG_SCHOOL HIGH_DITRESS_MNCPLTY 
+local INCOME HOUSEHOLDAGI EFC NAT_SCH_LUNCH 
+local COLLEGE T1_GPA_TERM SP1_GPA_TERM SP1_GPA_CUM T2_GPA_TERM T2_GPA_CUM UNIT 
+local DEM FEMALE_1 AGE_AT_START 
+local CATEGORICAL FEMALE_1 NB NW CM DFG_SCHOOL_CD HDM SCH_LUNCH COLL_PREP_CD EOF_SIB REMEDIAL_MATH REMEDIAL_ENG
+local PAREDU FATHER_COLLEGE MOTHER_COLLEGE FM_COLLEGE NEITHER_COLLEGE FATHER_Y_NO_MOM MOTHER_Y_NO_FAT 
+local CONTINUOUS HOUSEHOLDAGI EFC SATSCORE ACT_COMP HS_GPA HS_PCTILE_RANK AGE_AT_START T1_GPA_TERM SP1_GPA_TERM SP1_GPA_CUM T2_GPA_TERM T2_GPA_CUM 
+local DEPENDENT SEC_FALL_RET THRD_FALL_RET
+//TABULATIONS/ CHI2 FOR CATEGORICAL VARIABLES: All, EOF and Non-EOF FOR EACH CAMPUS
+*All
+foreach i in `CATEGORICAL'{
+tab `i', mi
+tab `i' if EOF_IND==1, mi
+tab `i' if EOF_IND==0, mi 
+tab `i' EOF_IND, chi2
+}
+foreach i in `PAREDU'{
+tab `i', mi
+tab `i' if EOF_IND==1, mi 
+tab `i' if EOF_IND==0, mi 
+tab `i' EOF_IND, chi2 
+}
+*New Brunswick
+foreach i in `CATEGORICAL'{
+tab `i' if NB==1, mi 
+tab `i' if NB==1 & EOF_IND==1, mi
+tab `i' if NB==1 & EOF_IND==0, mi
+tab `i' EOF_IND if NB==1, chi2 
+}
+foreach i in `PAREDU'{
+tab `i' if NB==1, mi 
+tab `i' if NB==1 & EOF_IND==1, mi
+tab `i' if NB==1 & EOF_IND==0, mi
+tab `i' EOF_IND if NB==1, chi2 
+}
+*Newark
+foreach i in `CATEGORICAL'{
+tab `i' if NW==1, mi 
+tab `i' if NW==1 & EOF_IND==1, mi
+tab `i' if NW==1 & EOF_IND==0, mi
+tab `i' EOF_IND if NW==1, chi2 
+}
+foreach i in `PAREDU'{
+tab `i' if NW==1, mi 
+tab `i' if NW==1 & EOF_IND==1, mi
+tab `i' if NW==1 & EOF_IND==0, mi
+tab `i' EOF_IND if NW==1, chi2 
+}
+*Camden
+foreach i in `CATEGORICAL'{
+tab `i' if CM==1, mi 
+tab `i' if CM==1 & EOF_IND==1, mi
+tab `i' if CM==1 & EOF_IND==0, mi
+tab `i' EOF_IND if CM==1, chi2 
+}
+foreach i in `PAREDU'{
+tab `i' if CM==1, mi 
+tab `i' if CM==1 & EOF_IND==1, mi
+tab `i' if CM==1 & EOF_IND==0, mi
+tab `i' EOF_IND if CM==1, chi2 
+}
+misstable summarize
+//SUMMARIES FOR CONTINUOUS VARIABLES: All, EOF, Non-EOF FOR EACH CAMPUS
+*All
+foreach i in `CONTINUOUS'{
+su `i'
+su `i' if EOF_IND==1
+su `i' if EOF_IND==0
+}
+*New Brunswick
+foreach i in `CONTINUOUS'{
+su `i' if NB==1
+su `i' if NB==1 & EOF_IND==1
+su `i' if NB==1 & EOF_IND==0
+}
+*Newark
+foreach i in `CONTINUOUS'{
+su `i' if NW==1
+su `i' if NW==1 & EOF_IND==1
+su `i' if NW==1 & EOF_IND==0
+}
+*Camden
+foreach i in `CONTINUOUS'{
+su `i' if CM==1
+su `i' if CM==1 & EOF_IND==1
+su `i' if CM==1 & EOF_IND==0
+}
+*Tests for statistical significance of continuous variables
+foreach i in `CONTINUOUS'{
+ttest `i', by (EOF_IND)
+}
+foreach i in `CONTINUOUS'{
+ttest `i' if NB==1, by (EOF_IND)
+}
+foreach i in `CONTINUOUS'{
+ttest `i' if NW==1, by (EOF_IND)
+}
+foreach i in `CONTINUOUS'{
+ttest `i' if CM==1, by (EOF_IND)
+}
+//TABULATIONS FOR DEPENDENT VARIABLES: All, EOF, Non-EOF FOR EACH CAMPUS
+*All
+foreach i in `DEPENDENT'{
+tab `i' if EOF_IND==1
+tab `i' if EOF_IND==0
+}
+*New Brunswick
+foreach i in `DEPENDENT'{
+tab `i' if NB==1 & EOF_IND==1
+tab `i' if NB==1 & EOF_IND==0
+}
+*Newark
+foreach i in `DEPENDENT'{
+tab `i' if NW==1 & EOF_IND==1
+tab `i' if NW==1 & EOF_IND==0
+}
+*Camden
+foreach i in `DEPENDENT'{
+tab `i' if CM==1 & EOF_IND==1
+tab `i' if CM==1 & EOF_IND==0
+}
+//CROSS TABULATIONS FOR CATEGORICAL VARIABLES
+*Sophomore Retention & EOF All 
+foreach i in `CATEGORICAL'{
+tab `i' SEC_FALL_RET, col row chi2
+tab `i' SEC_FALL_RET if EOF_IND==1, col row chi2
+tab `i' SEC_FALL_RET if EOF_IND==0, col row chi2
+}
+foreach i in `PAREDU'{
+tab `i' SEC_FALL_RET, col row chi2
+tab `i' SEC_FALL_RET if EOF_IND==1, col row
+tab `i' SEC_FALL_RET if EOF_IND==0, col row
+}
+*Sophomore Retention & EOF New Brunswick
+foreach i in `CATEGORICAL'{
+tab `i' SEC_FALL_RET if NB==1, col row chi2
+tab `i' SEC_FALL_RET if EOF_IND==1 & NB==1, col row chi2
+tab `i' SEC_FALL_RET if EOF_IND==0 & NB==1, col row chi2
+}
+foreach i in `PAREDU'{
+tab `i' SEC_FALL_RET if NB==1, col row chi2
+tab `i' SEC_FALL_RET if EOF_IND==1 & NB==1, col row chi2
+tab `i' SEC_FALL_RET if EOF_IND==0 & NB==1, col row chi2
+}
+*Sophomore Retention & EOF Newark 
+foreach i in `CATEGORICAL'{
+tab `i' SEC_FALL_RET if NW==1, col row chi2
+tab `i' SEC_FALL_RET if EOF_IND==1 & NW==1, col row chi2
+tab `i' SEC_FALL_RET if EOF_IND==0 & NW==1, col row chi2
+}
+foreach i in `PAREDU'{
+tab `i' SEC_FALL_RET if NW==1, col row chi2
+tab `i' SEC_FALL_RET if EOF_IND==1 & NW==1, col row chi2
+tab `i' SEC_FALL_RET if EOF_IND==0 & NW==1, col row chi2
+}
+*Sophomore Retention & EOF Camden
+foreach i in `CATEGORICAL'{
+tab `i' SEC_FALL_RET if CM==1, col row chi2
+tab `i' SEC_FALL_RET if EOF_IND==1 & CM==1, col row chi2
+tab `i' SEC_FALL_RET if EOF_IND==0 & CM==1, col row chi2
+}
+foreach i in `PAREDU'{
+tab `i' SEC_FALL_RET if CM==1, col row chi2
+tab `i' SEC_FALL_RET if EOF_IND==1 & CM==1, col row chi2
+tab `i' SEC_FALL_RET if EOF_IND==0 & CM==1, col row chi2
+}
+*Junior Retention & EOF All
+foreach i in `CATEGORICAL'{
+tab `i' THRD_FALL_RET, col row chi2
+tab `i' THRD_FALL_RET if EOF_IND==1, col row chi2
+tab `i' THRD_FALL_RET if EOF_IND==0, col row chi2
+}
+foreach i in `PAREDU'{
+tab `i' THRD_FALL_RET, col row chi2
+tab `i' THRD_FALL_RET if EOF_IND==1, col row
+tab `i' THRD_FALL_RET if EOF_IND==0, col row
+}
+*Junior Retention & EOF New Brunswick
+foreach i in `CATEGORICAL'{
+tab `i' THRD_FALL_RET if NB==1, col row chi2
+tab `i' THRD_FALL_RET if EOF_IND==1 & NB==1, col row chi2
+tab `i' THRD_FALL_RET if EOF_IND==0 & NB==1, col row chi2
+}
+foreach i in `PAREDU'{
+tab `i' THRD_FALL_RET if NB==1, col row chi2
+tab `i' THRD_FALL_RET if EOF_IND==1 & NB==1, col row chi2
+tab `i' THRD_FALL_RET if EOF_IND==0 & NB==1, col row chi2
+}
+*Junior Retention & EOF Newark
+foreach i in `CATEGORICAL'{
+tab `i' THRD_FALL_RET if NW==1, col row chi2
+tab `i' THRD_FALL_RET if EOF_IND==1 & NW==1, col row chi2
+tab `i' THRD_FALL_RET if EOF_IND==0 & NW==1, col row chi2
+}
+foreach i in `PAREDU'{
+tab `i' THRD_FALL_RET if NW==1, col row chi2
+tab `i' THRD_FALL_RET if EOF_IND==1 & NW==1, col row chi2
+tab `i' THRD_FALL_RET if EOF_IND==0 & NW==1, col row chi2
+}
+*Junior Retention & EOF Camden
+foreach i in `CATEGORICAL'{
+tab `i' THRD_FALL_RET if CM==1, col row chi2
+tab `i' THRD_FALL_RET if EOF_IND==1 & CM==1, col row chi2
+tab `i' THRD_FALL_RET if EOF_IND==0 & CM==1, col row chi2
+}
+foreach i in `PAREDU'{
+tab `i' THRD_FALL_RET if CM==1, col row chi2
+tab `i' THRD_FALL_RET if EOF_IND==1 & CM==1, col row chi2
+tab `i' THRD_FALL_RET if EOF_IND==0 & CM==1, col row chi2
+}
+//LOGITS FOR PREDICTORS OF RETENTION BASED ON BINARY RETENTION VARIABLE
+*Sophomore Retention; academic model
+logit SEC_FALL_RET i.EOF_IND, or/*Base model*/
+estimates store basea2
+logit SEC_FALL_RET i.EOF_IND HS_GPA HS_PCTILE_RANK SATSCORE ACT_COMP, or /*HS Academic Variables*/
+estimates store academic2 
+logit SEC_FALL_RET i.EOF_IND FEMALE_1 NB NW DFG_SCHOOL_CD HDM SCH_LUNCH COLL_PREP_CD EOF_SIB, or /*Significant Additional Categorical Predictors*/
+estimates store addapredictors2
+logit SEC_FALL_RET i.EOF_IND FEMALE_1 NB NW DFG_SCHOOL_CD HDM SCH_LUNCH COLL_PREP_CD EOF_SIB HS_GPA HS_PCTILE_RANK SATSCORE ACT_COMP , or /*All Significant Categorical Predictors*/
+estimates store allapredictors2
+estimates table basea2 academic2 addapredictors2 allapredictors2, star eform noomit /* table of results with signficance stars and odds ratios using Camden as base case*/
+*Sophomore Retention; financial model
+logit SEC_FALL_RET i.EOF_IND, or
+estimates store basef2
+logit SEC_FALL_RET i.EOF_IND HOUSEHOLDAGI EFC, or 
+estimates store financial2 
+logit SEC_FALL_RET i.EOF_IND FEMALE_1 NB NW DFG_SCHOOL_CD HDM SCH_LUNCH COLL_PREP_CD EOF_SIB, or 
+estimates store addfpredictors2
+logit SEC_FALL_RET i.EOF_IND FEMALE_1 NB NW DFG_SCHOOL_CD HDM SCH_LUNCH COLL_PREP_CD EOF_SIB HOUSEHOLDAGI EFC , or 
+estimates store allfpredictors2
+estimates table basef2 financial2 addfpredictors2 allfpredictors2, star eform noomit
+*Junior Retention; academic model
+logit THRD_FALL_RET i.EOF_IND, or
+estimates store basea3
+logit THRD_FALL_RET i.EOF_IND HS_GPA HS_PCTILE_RANK SATSCORE ACT_COMP, or 
+estimates store academic3 
+logit THRD_FALL_RET i.EOF_IND FEMALE_1 NB NW DFG_SCHOOL_CD HDM SCH_LUNCH COLL_PREP_CD EOF_SIB, or 
+estimates store addapredictors3
+logit THRD_FALL_RET i.EOF_IND FEMALE_1 NB NW DFG_SCHOOL_CD HDM SCH_LUNCH COLL_PREP_CD EOF_SIB HS_GPA HS_PCTILE_RANK SATSCORE ACT_COMP , or 
+estimates store allapredictors3
+estimates table basea3 academica3 addapredictors3 allapredictors3, star eform noomit 
+*Junior Retention; financial model
+logit THRD_FALL_RET i.EOF_IND, or
+estimates store basef3
+logit THRD_FALL_RET i.EOF_IND HOUSEHOLDAGI EFC, or
+estimates store financial3 
+logit THRD_FALL_RET i.EOF_IND FEMALE_1 NB NW DFG_SCHOOL_CD HDM SCH_LUNCH COLL_PREP_CD EOF_SIB, or 
+estimates store addfpredictors3
+logit THRD_FALL_RET i.EOF_IND FEMALE_1 NB NW DFG_SCHOOL_CD HDM SCH_LUNCH COLL_PREP_CD EOF_SIB HOUSEHOLDAGI EFC , or 
+estimates store allfpredictors3
+estimates table basef3 financial3 addfpredictors3 allfpredictors3, star eform noomit 
+
+//Marginal Change: Changes in marginal prediction
+*Sophomore Retention
+mchange
+logit SEC_FALL_RET i.EOF_IND FEMALE_1 DFG_SCHOOL_CD HDM SCH_LUNCH COLL_PREP_CD EOF_SIB HS_GPA HS_PCTILE_RANK SATSCORE ACT_COMP if CM, or
+margins r.EOF_IND, at(HS_GPA=(2(.5)4))
+marginsplot, yline(0) name(Camden, replace)
+logit SEC_FALL_RET i.EOF_IND FEMALE_1 DFG_SCHOOL_CD HDM SCH_LUNCH COLL_PREP_CD EOF_SIB HS_GPA HS_PCTILE_RANK SATSCORE ACT_COMP if NB, or
+margins r.EOF_IND, at(HS_GPA=(2(.5)4))
+marginsplot, yline(0) name(NewBrunswick, replace)
+logit SEC_FALL_RET i.EOF_IND FEMALE_1 DFG_SCHOOL_CD HDM SCH_LUNCH COLL_PREP_CD EOF_SIB HS_GPA HS_PCTILE_RANK SATSCORE ACT_COMP if NW, or
+margins r.EOF_IND, at(HS_GPA=(2(.5)4))
+marginsplot, yline(0) name(Newark, replace)
+logit SEC_FALL_RET i.EOF_IND FEMALE_1 DFG_SCHOOL_CD HDM SCH_LUNCH COLL_PREP_CD EOF_SIB HS_GPA HS_PCTILE_RANK SATSCORE ACT_COMP NB NW, or
+margins r.EOF_IND, at(HS_GPA=(2(.5)4))
+marginsplot, yline(0) name(All, replace)
+*Junior Retention
+mchange
+logit THRD_FALL_RET i.EOF_IND FEMALE_1 DFG_SCHOOL_CD HDM SCH_LUNCH COLL_PREP_CD EOF_SIB HS_GPA HS_PCTILE_RANK SATSCORE ACT_COMP if CM, or
+margins r.EOF_IND, at(HS_GPA=(2(.5)4))
+marginsplot, yline(0) name(Camden, replace)
+logit THRD_FALL_RET i.EOF_IND FEMALE_1 DFG_SCHOOL_CD HDM SCH_LUNCH COLL_PREP_CD EOF_SIB HS_GPA HS_PCTILE_RANK SATSCORE ACT_COMP if NB, or
+margins r.EOF_IND, at(HS_GPA=(2(.5)4))
+marginsplot, yline(0) name(NewBrunswick, replace)
+logit THRD_FALL_RET i.EOF_IND FEMALE_1 DFG_SCHOOL_CD HDM SCH_LUNCH COLL_PREP_CD EOF_SIB HS_GPA HS_PCTILE_RANK SATSCORE ACT_COMP if NW, or
+margins r.EOF_IND, at(HS_GPA=(2(.5)4))
+marginsplot, yline(0) name(Newark, replace)
+logit THRD_FALL_RET i.EOF_IND FEMALE_1 DFG_SCHOOL_CD HDM SCH_LUNCH COLL_PREP_CD EOF_SIB HS_GPA HS_PCTILE_RANK SATSCORE ACT_COMP NB NW, or
+margins r.EOF_IND, at(HS_GPA=(2(.5)4))
+marginsplot, yline(0) name(All, replace)
