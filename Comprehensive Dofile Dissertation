@@ -95,16 +95,18 @@ gen FEMALE_1=.
 replace FEMALE_1=1 if GENDER=="F"
 replace FEMALE_1=0 if GENDER=="M"
 label define FEMALE_1 0 "MALE" 1 "FEMALE"
-//TO DESTRING DEPENDEDNT VARIABLES
+//TO DESTRING DEPENDENT VARIABLES
 destring SEC_FALL_RET, replace
 destring THRD_FALL_RET, replace
 //MERGING SURVEY DATA
-drop in 4012 /*Duplicate email address*/
 preserve
 tempfile surveydata
 import excel "https://docs.google.com/uc?id=1PFStF-bUWV5C97lbTjssmj2lHJJV4vjl&export=download", firstrow clear
 save `surveydata'
 restore
+merge 1:1 EMAIL using `surveydata'
+duplicates list EMAIL
+drop in 4012 /*Duplicate email address*/
 merge 1:1 EMAIL using `surveydata'
 //TO CREATE LOCALS BASED ON MEASURES PREDICTING STUDNET RETENTION
 local SCHOOLING HS_GPA HS_PCTILE_RANK ACT_COMP SATSCORE COLLEGE_PREP_PROG  
@@ -320,7 +322,7 @@ tab `i' THRD_FALL_RET if EOF_IND==0 & CM==1, col row chi2
 }
 //LOGITS FOR PREDICTORS OF RETENTION BASED ON BINARY RETENTION VARIABLE
 *Sophomore Retention; academic model
-logit SEC_FALL_RET i.EOF_IND, or/*Base model*/
+logit SEC_FALL_RET i.EOF_IND, or /*Base model*/
 estimates store basea2
 logit SEC_FALL_RET i.EOF_IND HS_GPA HS_PCTILE_RANK SATSCORE ACT_COMP, or /*HS Academic Variables*/
 estimates store academic2 
@@ -343,7 +345,7 @@ estimates table basef2 financial2 addfpredictors2 allfpredictors2, star eform no
 logit THRD_FALL_RET i.EOF_IND, or
 estimates store basea3
 logit THRD_FALL_RET i.EOF_IND HS_GPA HS_PCTILE_RANK SATSCORE ACT_COMP, or 
-estimates store academic3 
+estimates store academica3 
 logit THRD_FALL_RET i.EOF_IND FEMALE_1 NB NW DFG_SCHOOL_CD HDM SCH_LUNCH COLL_PREP_CD EOF_SIB, or 
 estimates store addapredictors3
 logit THRD_FALL_RET i.EOF_IND FEMALE_1 NB NW DFG_SCHOOL_CD HDM SCH_LUNCH COLL_PREP_CD EOF_SIB HS_GPA HS_PCTILE_RANK SATSCORE ACT_COMP , or 
@@ -353,12 +355,12 @@ estimates table basea3 academica3 addapredictors3 allapredictors3, star eform no
 logit THRD_FALL_RET i.EOF_IND, or
 estimates store basef3
 logit THRD_FALL_RET i.EOF_IND HOUSEHOLDAGI EFC, or
-estimates store financial3 
+estimates store financialf3 
 logit THRD_FALL_RET i.EOF_IND FEMALE_1 NB NW DFG_SCHOOL_CD HDM SCH_LUNCH COLL_PREP_CD EOF_SIB, or 
 estimates store addfpredictors3
 logit THRD_FALL_RET i.EOF_IND FEMALE_1 NB NW DFG_SCHOOL_CD HDM SCH_LUNCH COLL_PREP_CD EOF_SIB HOUSEHOLDAGI EFC , or 
 estimates store allfpredictors3
-estimates table basef3 financial3 addfpredictors3 allfpredictors3, star eform noomit 
+estimates table basef3 financialf3 addfpredictors3 allfpredictors3, star eform noomit 
 
 //Marginal Change: Changes in marginal prediction
 *Sophomore Retention
